@@ -27,8 +27,9 @@
       }
     },
     "error": {
-      "cannot_connect": "Geen verbinding. Staat de dienst api (of api-ssl) aan, en klopt de poort?",
-      "invalid_auth": "De gebruiker of het wachtwoord klopt niet, of de groep van de gebruiker mist de policy api."
+      "cannot_connect": "Geen verbinding: {reason}. Staat de dienst api (of api-ssl, met SSL gebruiken) aan, klopt de poort, en mag het adres van Home Assistant erin (IP → Services → api → Available From, en de input-chain van de firewall)?",
+      "invalid_auth": "De gebruiker of het wachtwoord klopt niet, of de groep van de gebruiker mist de policy api.",
+      "unknown": "Onverwachte fout: {reason}. Zie het log van Home Assistant."
     },
     "abort": {
       "already_configured": "Deze MikroTik is al toegevoegd.",

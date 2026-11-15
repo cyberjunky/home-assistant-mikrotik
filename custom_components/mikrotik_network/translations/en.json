@@ -27,8 +27,9 @@
       }
     },
     "error": {
-      "cannot_connect": "Cannot connect. Is the api (or api-ssl) service on, and the port right?",
-      "invalid_auth": "The user or password is wrong, or the user's group lacks the api policy."
+      "cannot_connect": "Cannot connect: {reason}. Is the api service (or api-ssl, with Use SSL) on, the port right, and is the address of Home Assistant allowed (IP → Services → api → Available From, and the firewall's input chain)?",
+      "invalid_auth": "The user or password is wrong, or the user's group lacks the api policy.",
+      "unknown": "Unexpected error: {reason}. See the Home Assistant log."
     },
     "abort": {
       "already_configured": "This MikroTik is added already.",

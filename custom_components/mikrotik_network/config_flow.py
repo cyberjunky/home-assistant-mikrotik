@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 from typing import Any
 
@@ -33,6 +34,8 @@ from .const import (
 )
 from .coordinator import MikroTikConfigEntry, api_from_entry
 
+_LOGGER = logging.getLogger(__name__)
+
 
 def _probe(data: dict[str, Any]) -> tuple[str, str]:
     """Log in and read its name and serial number. Blocking."""
@@ -49,14 +52,22 @@ def _probe(data: dict[str, Any]) -> tuple[str, str]:
 
 class MikroTikConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 1
+    # Why the last try failed (connection refused, timed out, ..), shown with the error
+    _reason = ""
 
     async def _check(self, data: dict[str, Any], errors: dict[str, str]) -> tuple[str, str] | None:
         try:
             return await self.hass.async_add_executor_job(_probe, data)
         except InvalidAuthError:
             errors["base"] = "invalid_auth"
-        except CannotConnectError:
+        except CannotConnectError as err:
             errors["base"] = "cannot_connect"
+            self._reason = str(err) or type(err).__name__
+            _LOGGER.warning("Cannot connect to %s:%s: %s", data[CONF_HOST], data[CONF_PORT], self._reason)
+        except Exception as err:
+            errors["base"] = "unknown"
+            self._reason = f"{type(err).__name__}: {err}"
+            _LOGGER.exception("Unexpected error connecting to %s:%s", data[CONF_HOST], data[CONF_PORT])
         return None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -86,6 +97,7 @@ class MikroTikConfigFlow(ConfigFlow, domain=DOMAIN):
                 }
             ),
             errors=errors,
+            description_placeholders={"reason": self._reason},
         )
 
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
@@ -106,7 +118,7 @@ class MikroTikConfigFlow(ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_PASSWORD): TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD)),
                 }
             ),
-            description_placeholders={"host": entry.data[CONF_HOST]},
+            description_placeholders={"host": entry.data[CONF_HOST], "reason": self._reason},
             errors=errors,
         )
 

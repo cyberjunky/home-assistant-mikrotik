@@ -34,6 +34,8 @@ async def test_wrong_login_and_no_answer(hass: HomeAssistant, fake_api) -> None:
     assert result["errors"] == {"base": "invalid_auth"}
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {**GOOD, "host": "10.9.9.9"})
     assert result["errors"] == {"base": "cannot_connect"}
+    # Why, in the form
+    assert result["description_placeholders"]["reason"] == "no route to host"
     result = await hass.config_entries.flow.async_configure(result["flow_id"], GOOD)
     assert result["type"] is FlowResultType.CREATE_ENTRY
 
