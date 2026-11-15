@@ -20,6 +20,7 @@ from .const import (
     ATTR_AP_MAC,
     ATTR_AP_NAME,
     ATTR_INTERFACE,
+    ATTR_IP_ADDRESSES,
     ATTR_LAST_SEEN,
     ATTR_SIGNAL,
     ATTR_SSID,
@@ -111,6 +112,8 @@ class MikroTikTracker(CoordinatorEntity[MikroTikCoordinator], RestoreEntity, Sca
         client = self._client
         if client and client.interface:
             attrs[ATTR_INTERFACE] = client.interface
+        if client and len(client.ips) > 1:
+            attrs[ATTR_IP_ADDRESSES] = client.ips
         if client and client.ssid:
             attrs[ATTR_SSID] = client.ssid
         if client and client.signal is not None:

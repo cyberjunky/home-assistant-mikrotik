@@ -31,6 +31,8 @@ ATTR_SSID: Final = "ssid"
 ATTR_SIGNAL: Final = "signal"
 ATTR_INTERFACE: Final = "interface"
 ATTR_LAST_SEEN: Final = "last_seen"
+# Every address a device answers on, when it is more than one
+ATTR_IP_ADDRESSES: Final = "ip_addresses"
 # On a port or access point: the MAC addresses placed there, and the port's name
 ATTR_CONNECTED: Final = "connected"
 ATTR_PORT_SWITCH: Final = "switch_mac"

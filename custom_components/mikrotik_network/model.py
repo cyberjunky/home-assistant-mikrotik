@@ -102,6 +102,8 @@ class RemoteCap:
 class Client:
     mac: str
     ip: str = ""
+    # Every address it answers on (a FRITZ!Box answers on several)
+    ips: list[str] = field(default_factory=list)
     hostname: str = ""
     comment: str = ""
     interface: str = ""
@@ -243,7 +245,7 @@ def parse(
         data.ports[name] = port
 
     _parse_wifi(raw.get("wifi") or {}, data)
-    _parse_clients(raw, data)
+    _parse_clients(raw, data, _gateway_ip(raw))
     data.gateway_mac = _gateway_mac(raw)
     return data
 
@@ -251,15 +253,19 @@ def parse(
 _IP = re.compile(r"\d+\.\d+\.\d+\.\d+")
 
 
-def _gateway_mac(raw: dict[str, Any]) -> str:
-    """The MAC of the default gateway: the active 0.0.0.0/0 route's gateway, looked up in ARP."""
-    gateway = ""
+def _gateway_ip(raw: dict[str, Any]) -> str:
+    """The default gateway: the active 0.0.0.0/0 route's gateway."""
     for row in raw.get("route") or []:
         if row.get("dst-address") == "0.0.0.0/0" and (row.get("active") in (True, "true") or "active" not in row):
             m = _IP.search(str(row.get("immediate-gw") or row.get("gateway") or ""))
             if m:
-                gateway = m.group(0)
-                break
+                return m.group(0)
+    return ""
+
+
+def _gateway_mac(raw: dict[str, Any]) -> str:
+    """The MAC of the default gateway, looked up in ARP."""
+    gateway = _gateway_ip(raw)
     for row in raw.get("arp") or []:
         if gateway and row.get("address") == gateway:
             return normalize_mac(row.get("mac-address"))
@@ -319,8 +325,13 @@ def _parse_wifi(wifi: dict[str, Any], data: MikroTikData) -> None:
         )
 
 
-def _parse_clients(raw: dict[str, Any], data: MikroTikData) -> None:
-    """The network's devices this one knows: Wi-Fi registrations (above), DHCP leases and the ARP table."""
+def _parse_clients(raw: dict[str, Any], data: MikroTikData, gateway_ip: str = "") -> None:
+    """The network's devices this one knows: Wi-Fi registrations (above), DHCP leases and the ARP table.
+
+    A device that answers on several addresses (a FRITZ!Box does) gets as its address: its DHCP lease,
+    else the default gateway's address, else one it answered on lately, else the first.
+    """
+    alive_ips: dict[str, list[str]] = {}
     for row in raw.get("dhcp") or []:
         mac = normalize_mac(row.get("mac-address"))
         if not mac or as_bool(row.get("disabled")):
@@ -337,10 +348,21 @@ def _parse_clients(raw: dict[str, Any], data: MikroTikData) -> None:
         # RouterOS 6 has no status: a complete dynamic entry is a device that answered
         alive = status in _ARP_ALIVE if status else as_bool(row.get("complete")) and not as_bool(row.get("invalid"))
         client = data.clients.setdefault(mac, Client(mac=mac))
-        client.ip = client.ip or str(row.get("address") or "")
+        address = str(row.get("address") or "")
+        if address and address not in client.ips:
+            client.ips.append(address)
+            if alive:
+                alive_ips.setdefault(mac, []).append(address)
         if not client.wifi:
             client.interface = str(row.get("interface") or client.interface)
         client.active = client.active or alive
+    for mac, client in data.clients.items():
+        if client.ip or not client.ips:
+            continue
+        if gateway_ip in client.ips:
+            client.ip = gateway_ip
+        else:
+            client.ip = (alive_ips.get(mac) or client.ips)[0]
 
 
 # ---------------------------------------------------------------------

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2
+
+- **A device on several addresses:** a device that answers on more than one address (a FRITZ!Box does) gets its DHCP lease, else the default gateway's address, else one it answered on lately, instead of whichever came first in ARP. All its addresses are on the tracker as `ip_addresses`.
+
 ## 0.1.1
 
 - **Which device on which port, for every device:** each port and Wi-Fi access point lists the MAC addresses plugged into it (`connected`), with the switch's or access point's MAC (`switch_mac`, `ap_mac`) and the port's name. Behind another router a MikroTik tracks only a few devices itself; now a device tracked by any integration (arp-scan, the FRITZ!Box) can be placed on its port, as the Network app does.

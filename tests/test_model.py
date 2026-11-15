@@ -161,3 +161,24 @@ def test_gateway_as_routeros_6_writes_it():
     }
     assert _gateway_mac(r) == "00:7a:a4:4b:f4:4a"
     assert _gateway_mac({"route": [], "arp": []}) == ""
+
+
+def test_a_device_on_several_addresses():
+    # A FRITZ!Box answers on its own address and on others: the gateway's address wins
+    fritz = "00:7a:a4:4b:f4:4a"
+    r = raw(SW)
+    r["route"] = [{"dst-address": "0.0.0.0/0", "gateway": "192.168.2.254", "active": True}]
+    r["arp"] = [
+        {"mac-address": fritz.upper(), "address": f"192.168.2.{n}", "interface": "bridge", "status": "reachable"}
+        for n in (187, 181, 254)
+    ] + [
+        {"mac-address": PI.upper(), "address": "192.168.2.20", "interface": "bridge", "status": "stale"},
+        {"mac-address": PI.upper(), "address": "192.168.2.21", "interface": "bridge", "status": "reachable"},
+    ]
+    sw = parse(r, SW, now=1000.0)
+    assert sw.clients[fritz].ip == "192.168.2.254" and len(sw.clients[fritz].ips) == 3
+    # Not the gateway: one it answered on lately
+    assert sw.clients[PI].ip == "192.168.2.21"
+    # A DHCP lease always wins
+    r["dhcp"] = [{"mac-address": PI.upper(), "address": "192.168.2.20", "status": "bound"}]
+    assert parse(r, SW, now=1000.0).clients[PI].ip == "192.168.2.20"
