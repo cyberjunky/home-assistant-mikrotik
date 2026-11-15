@@ -46,8 +46,8 @@ read instead.
 
 **Where a device plugs in.** A device's MAC address is seen on every switch between it and the router.
 The integration takes the port that leads furthest down. A port that leads up (where your router is
-seen: a MikroTik with a DHCP server, or the default gateway of a MikroTik, such as a FRITZ!Box) is an
-uplink: only that router itself is placed on it, and what is seen only through it is somewhere above.
+seen: a MikroTik with a DHCP server whose own gateway is not on the network, or the default gateway of
+a MikroTik, such as a FRITZ!Box) is an uplink: only that router itself is placed on it, and what is seen only through it is somewhere above.
 Of the other ports, the one with the fewest MAC addresses wins, since an uplink carries everything
 behind it. A Wi-Fi client is on the access point it is registered to. Add all your MikroTiks, also the
 ones that don't track devices, so it knows the whole network.

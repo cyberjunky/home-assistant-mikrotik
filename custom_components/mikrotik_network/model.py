@@ -381,8 +381,8 @@ def place(sources: dict[str, MikroTikData]) -> dict[str, Placement]:
     """Where each MAC plugs in, over every MikroTik.
 
     A MAC is seen on every switch between the device and the router, so:
-    - A port that leads up is an uplink: the port where a MikroTik router (one with a DHCP server) or
-      a MikroTik's default gateway is seen. On an uplink only that gateway itself is placed (a
+    - A port that leads up is an uplink: the port where a MikroTik router (one with a DHCP server whose
+      own gateway is not on the network) or a MikroTik's default gateway is seen. On an uplink only that gateway itself is placed (a
       FRITZ!Box on the CRS port it hangs on); everything else seen there is somewhere above.
     - Of the other ports, the one with the fewest MACs wins (an uplink carries everything behind it);
       a Wi-Fi registration counts as half a MAC.
@@ -398,7 +398,17 @@ def place(sources: dict[str, MikroTikData]) -> dict[str, Placement]:
         for _mac, interface, _ in d.wifi:
             load[(sid, interface)] = load.get((sid, interface), 0) + WIFI_WEIGHT
     owner = {mac: sid for sid, d in sources.items() for mac in d.own_macs}
-    routers = [sid for sid, d in sources.items() if d.router]
+    # The router at the top: a MikroTik with a DHCP server whose own default gateway is not on the
+    # network (on its WAN). A hAP with its factory DHCP server behind a FRITZ!Box sees its gateway on
+    # its own uplink: not the top.
+    lan_macs: dict[str, set[str]] = {}
+    for (sid, _port), macs in port_macs.items():
+        lan_macs.setdefault(sid, set()).update(macs)
+    routers = [
+        sid
+        for sid, d in sources.items()
+        if d.router and not (d.gateway_mac and d.gateway_mac in lan_macs.get(sid, set()))
+    ]
     gateways = {d.gateway_mac for d in sources.values() if d.gateway_mac}
     up_macs = {mac for sid in routers for mac in sources[sid].own_macs} | gateways
 

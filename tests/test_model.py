@@ -182,3 +182,37 @@ def test_a_device_on_several_addresses():
     # A DHCP lease always wins
     r["dhcp"] = [{"mac-address": PI.upper(), "address": "192.168.2.20", "status": "bound"}]
     assert parse(r, SW, now=1000.0).clients[PI].ip == "192.168.2.20"
+
+
+def test_a_hap_with_its_factory_dhcp_server_behind_a_fritz_box():
+    # The hAP still runs its default DHCP server, but its gateway (the FRITZ!Box) is on its own
+    # uplink: it is not the top of the network, and what it sees only through that uplink is above
+    fritz, fritz_ip = "00:7a:a4:4b:f4:4a", "192.168.2.254"
+    phone_on_fritz = "6a:00:00:00:00:99"
+    up = {
+        "route": [{"dst-address": "0.0.0.0/0", "gateway": fritz_ip, "active": True}],
+        "arp": [{"mac-address": fritz.upper(), "address": fritz_ip}],
+    }
+    sw_raw = {**raw(SW), **up}
+    # The CRS: the FRITZ!Box and its Wi-Fi phone on ether1 (up), the Pi on ether2, the hAP on ether3
+    sw_raw["bridge_host"] = [
+        host(fritz, "ether1"),
+        host(phone_on_fritz, "ether1"),
+        host(PI, "ether2"),
+        host(CAP_MAC, "ether3"),
+    ]
+    hap_raw = {**raw(CAP), **up, "dhcp_server": [{"name": "defconf", "disabled": False}]}
+    # The hAP: everything else through its ether1, toward the CRS
+    hap_raw["bridge_host"] = [
+        host(fritz, "ether1"),
+        host(phone_on_fritz, "ether1"),
+        host(PI, "ether1"),
+        host(SW_MAC, "ether1"),
+    ]
+    sw, hap = parse(sw_raw, SW, now=1000.0), parse(hap_raw, CAP, now=1000.0)
+    assert hap.router and hap.gateway_mac == fritz
+    where = {mac: (p.device, p.port) for mac, p in place({SW: sw, CAP: hap}).items()}
+    # Not on the hAP's uplink: the phone on the FRITZ!Box's Wi-Fi gets no port
+    assert phone_on_fritz not in where
+    assert where[PI] == (SW, "ether2") and where[CAP_MAC] == (SW, "ether3") and where[fritz] == (SW, "ether1")
+    assert SW_MAC not in where

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- **A hAP with its factory DHCP server is not the router:** a MikroTik counted as the top of the network as soon as it ran a DHCP server. A hAP that still has its default DHCP server, behind a FRITZ!Box, then made everything it saw through its own uplink look plugged into that uplink. Now a MikroTik only counts as the router when its own default gateway isn't on the network; otherwise its uplink is an uplink like any other.
+
 ## 0.1.2
 
 - **A device on several addresses:** a device that answers on more than one address (a FRITZ!Box does) gets its DHCP lease, else the default gateway's address, else one it answered on lately, instead of whichever came first in ARP. All its addresses are on the tracker as `ip_addresses`.
