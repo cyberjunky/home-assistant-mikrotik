@@ -64,19 +64,50 @@ the type *Integration*, install **MikroTik Network**, and restart Home Assistant
 
 ## Setup
 
-On each MikroTik, a read-only user for the API:
+On each MikroTik, in its terminal (Winbox, WebFig or SSH):
 
-```
-/user group add name=homeassistant policy=read,api
-/user add name=homeassistant group=homeassistant password=<a long password>
-```
+1. **A read-only user** for the API:
 
-The `api` service (port 8728) is on by default. For an encrypted connection turn on `api-ssl`
-(port 8729) and tick *Use SSL*.
+   ```
+   /user group add name=homeassistant policy=read,api
+   /user add name=homeassistant group=homeassistant password=<a long password>
+   ```
+
+2. **The API service on**, best only for Home Assistant's address. It is off on many MikroTiks:
+
+   ```
+   /ip service enable api
+   /ip service set api address=<Home Assistant IP>/32
+   ```
+
+   `/ip service print where name~"api"` shows whether it is on (no `X`), its port (8728) and which
+   addresses may use it. For an encrypted connection use `api-ssl` (port 8729, it needs a
+   certificate) instead, and tick *Use SSL* in Home Assistant.
+
+3. **The firewall lets Home Assistant in.** The default configuration of a MikroTik router accepts
+   only what comes from its LAN. If Home Assistant is in another VLAN or subnet, allow it:
+
+   ```
+   /ip firewall filter add chain=input protocol=tcp dst-port=8728 src-address=<Home Assistant IP> action=accept place-before=0 comment="Home Assistant API"
+   ```
 
 Then in Home Assistant: **Settings → Devices & services → Add integration → MikroTik Network**, with
 the address, the user and the password. Add every MikroTik: the router, the switches and the access
 points.
+
+### When it can't connect
+
+The form says why:
+
+| It says | Look at |
+|---|---|
+| Connection refused | The `api` service is off, or on another port (step 2) |
+| Timed out | The firewall drops it, or the service's *Available From* doesn't include Home Assistant's address (steps 2 and 3) |
+| An SSL error | *Use SSL* is ticked, but `api-ssl` is off or has no certificate |
+| The user or password is wrong | The user, the password, or the group lacks the `api` policy (step 1) |
+
+Switches running **SwOS** (the CSS series, and CRS models started in SwOS) have no API at all: switch
+them to RouterOS to add them.
 
 ### Options
 
