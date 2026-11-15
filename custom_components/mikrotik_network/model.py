@@ -126,6 +126,8 @@ class MikroTikData:
     own_macs: set[str] = field(default_factory=set)
     # Runs a DHCP server: the router, the top of the network
     router: bool = False
+    # The MAC of its default gateway (from the route table and ARP): the port it is on leads up
+    gateway_mac: str = ""
     ports: dict[str, Port] = field(default_factory=dict)
     access_points: dict[str, AccessPoint] = field(default_factory=dict)
     remote_caps: dict[str, RemoteCap] = field(default_factory=dict)
@@ -242,7 +244,26 @@ def parse(
 
     _parse_wifi(raw.get("wifi") or {}, data)
     _parse_clients(raw, data)
+    data.gateway_mac = _gateway_mac(raw)
     return data
+
+
+_IP = re.compile(r"\d+\.\d+\.\d+\.\d+")
+
+
+def _gateway_mac(raw: dict[str, Any]) -> str:
+    """The MAC of the default gateway: the active 0.0.0.0/0 route's gateway, looked up in ARP."""
+    gateway = ""
+    for row in raw.get("route") or []:
+        if row.get("dst-address") == "0.0.0.0/0" and (row.get("active") in (True, "true") or "active" not in row):
+            m = _IP.search(str(row.get("immediate-gw") or row.get("gateway") or ""))
+            if m:
+                gateway = m.group(0)
+                break
+    for row in raw.get("arp") or []:
+        if gateway and row.get("address") == gateway:
+            return normalize_mac(row.get("mac-address"))
+    return ""
 
 
 def _parse_wifi(wifi: dict[str, Any], data: MikroTikData) -> None:
@@ -338,12 +359,13 @@ def place(sources: dict[str, MikroTikData]) -> dict[str, Placement]:
     """Where each MAC plugs in, over every MikroTik.
 
     A MAC is seen on every switch between the device and the router, so:
-    - A port that leads to the router (a MikroTik with a DHCP server) is an uplink: nothing is placed
-      on it while another place is known, and a MikroTik never is.
+    - A port that leads up is an uplink: the port where a MikroTik router (one with a DHCP server) or
+      a MikroTik's default gateway is seen. On an uplink only that gateway itself is placed (a
+      FRITZ!Box on the CRS port it hangs on); everything else seen there is somewhere above.
     - Of the other ports, the one with the fewest MACs wins (an uplink carries everything behind it);
       a Wi-Fi registration counts as half a MAC.
-    Without a MikroTik router (behind another router), two MikroTiks that see each other: the one
-    seen through the quieter port is the lower one, and the upper one is never placed on it.
+    Without either (no router, no gateway in ARP), two MikroTiks that see each other: the one seen
+    through the quieter port is the lower one, and the upper one is never placed on it.
     """
     port_macs: dict[tuple[str, str], set[str]] = {}
     load: dict[tuple[str, str], float] = {}
@@ -355,10 +377,11 @@ def place(sources: dict[str, MikroTikData]) -> dict[str, Placement]:
             load[(sid, interface)] = load.get((sid, interface), 0) + WIFI_WEIGHT
     owner = {mac: sid for sid, d in sources.items() for mac in d.own_macs}
     routers = [sid for sid, d in sources.items() if d.router]
-    router_macs = {mac for sid in routers for mac in sources[sid].own_macs}
+    gateways = {d.gateway_mac for d in sources.values() if d.gateway_mac}
+    up_macs = {mac for sid in routers for mac in sources[sid].own_macs} | gateways
 
-    def toward_router(sid: str, port: str) -> bool:
-        return sid not in routers and bool(port_macs.get((sid, port), set()) & router_macs)
+    def uplink(sid: str, port: str) -> bool:
+        return sid not in routers and bool(port_macs.get((sid, port), set()) & up_macs)
 
     seen_on: dict[tuple[str, str], float] = {}
     for sid, d in sources.items():
@@ -368,26 +391,23 @@ def place(sources: dict[str, MikroTikData]) -> dict[str, Placement]:
                 weight = load[(sid, port)]
                 seen_on[(x, sid)] = min(weight, seen_on.get((x, sid), weight))
 
-    # Per MAC: (uplink?, weight, placement); a place that isn't an uplink always wins
-    best: dict[str, tuple[bool, float, Placement]] = {}
+    best: dict[str, tuple[float, Placement]] = {}
 
     def offer(mac: str, sid: str, port: str, weight: float, placement: Placement) -> None:
         x = owner.get(mac)
         if x == sid:
             return
-        uplink = toward_router(sid, port)
-        if x and uplink:
+        if uplink(sid, port) and (x or mac not in gateways):
             return
-        # No router known: x seen on sid, and sid on x through a quieter port: sid is below x
-        if x and not routers and (sid, x) in seen_on and seen_on[(sid, x)] < seen_on[(x, sid)]:
+        # Nothing known about up: x seen on sid, and sid on x through a quieter port: sid is below x
+        if x and not up_macs and (sid, x) in seen_on and seen_on[(sid, x)] < seen_on[(x, sid)]:
             return
-        rank = (uplink, weight)
-        if mac not in best or rank < best[mac][:2]:
-            best[mac] = (uplink, weight, placement)
+        if mac not in best or weight < best[mac][0]:
+            best[mac] = (weight, placement)
 
     for sid, d in sources.items():
         for mac, port, vlan in d.fdb:
             offer(mac, sid, port, load[(sid, port)], Placement(sid, port, "ethernet", vlan=vlan))
         for mac, interface, signal in d.wifi:
             offer(mac, sid, interface, WIFI_WEIGHT, Placement(sid, interface, "wifi", signal=signal))
-    return {mac: p for mac, (_, _, p) in best.items()}
+    return {mac: p for mac, (_, p) in best.items()}

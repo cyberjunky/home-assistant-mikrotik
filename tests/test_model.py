@@ -2,7 +2,7 @@
 
 from custom_components.mikrotik_network.model import parse, parse_rate, parse_uptime, place
 
-from .conftest import CAP, CAP_MAC, DEVICES, GW, GW_MAC, LAPTOP, NAS, PHONE, PI, SW, SW_MAC
+from .conftest import CAP, CAP_MAC, DEVICES, GW, GW_MAC, LAPTOP, NAS, PHONE, PI, SW, SW_MAC, host
 
 
 def raw(host: str) -> dict:
@@ -24,6 +24,7 @@ def raw(host: str) -> dict:
         "dhcp_server": menus.get(("ip", "dhcp-server")),
         "dhcp": menus.get(("ip", "dhcp-server", "lease")),
         "arp": menus.get(("ip", "arp")),
+        "route": menus.get(("ip", "route")),
         "links": {"ether1": {"rate": "1Gbps", "full-duplex": True}, "ether2": {"rate": "100Mbps"}},
         "wifi": wifi,
     }
@@ -124,3 +125,39 @@ def test_routeros_6_without_arp_status():
     gw = parse(r, GW, now=1000.0)
     assert gw.clients[NAS].active and not gw.clients[PI].active
     assert gw.temperature == 41.0
+
+
+def test_behind_another_router():
+    # A FRITZ!Box is the router: the CRS and the cAP find the port toward it from their default
+    # gateway. Only the FRITZ!Box is placed there; what is seen only through that port is above.
+    fritz, fritz_ip = "00:7a:a4:00:00:fe", "192.168.88.254"
+    up = {
+        "route": [{"dst-address": "0.0.0.0/0", "gateway": fritz_ip, "active": True}],
+        "arp": [{"mac-address": fritz.upper(), "address": fritz_ip}],
+    }
+    sw_raw = {**raw(SW), **up}
+    sw_raw["bridge_host"] = [*sw_raw["bridge_host"], host(fritz, "ether1")]
+    cap_raw = {**raw(CAP), **up}
+    cap_raw["bridge_host"] = [*cap_raw["bridge_host"], host(fritz, "ether1")]
+    sw, cap = parse(sw_raw, SW, now=1000.0), parse(cap_raw, CAP, now=1000.0)
+    assert sw.gateway_mac == fritz
+    where = {mac: (p.device, p.port, p.kind) for mac, p in place({SW: sw, CAP: cap}).items()}
+    assert where[fritz] == (SW, "ether1", "ethernet")
+    assert where[PI] == (SW, "ether2", "ethernet") and where[CAP_MAC] == (SW, "ether3", "ethernet")
+    assert where[PHONE] == (CAP, "wifi1", "wifi")
+    # On the FRITZ!Box's side, not on the CRS's uplink
+    assert NAS not in where and GW_MAC not in where and SW_MAC not in where
+
+
+def test_gateway_as_routeros_6_writes_it():
+    from custom_components.mikrotik_network.model import _gateway_mac
+
+    r = {
+        "route": [
+            {"dst-address": "10.0.0.0/8", "gateway": "10.1.1.1"},
+            {"dst-address": "0.0.0.0/0", "gateway": "192.168.2.254", "immediate-gw": "192.168.2.254%bridge"},
+        ],
+        "arp": [{"mac-address": "00:7A:A4:4B:F4:4A", "address": "192.168.2.254"}],
+    }
+    assert _gateway_mac(r) == "00:7a:a4:4b:f4:4a"
+    assert _gateway_mac({"route": [], "arp": []}) == ""

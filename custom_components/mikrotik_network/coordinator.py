@@ -83,6 +83,9 @@ class MikroTikCoordinator(DataUpdateCoordinator[MikroTikData]):
             "bridge_host": api.read("interface", "bridge", "host"),
             "neighbor": api.read("ip", "neighbor"),
             "dhcp_server": api.read("ip", "dhcp-server"),
+            # The default route and ARP: which MAC is the gateway, so the port it is on leads up
+            "route": api.read("ip", "route"),
+            "arp": api.read("ip", "arp"),
             "wifi": read_wifi(api, self._wifi_package),
         }
         if not raw["bridge_host"]:
@@ -96,7 +99,6 @@ class MikroTikCoordinator(DataUpdateCoordinator[MikroTikData]):
         raw["links"] = api.links(running)
         if self.track_devices:
             raw["dhcp"] = api.read("ip", "dhcp-server", "lease")
-            raw["arp"] = api.read("ip", "arp")
         return raw
 
     async def _async_update_data(self) -> MikroTikData:

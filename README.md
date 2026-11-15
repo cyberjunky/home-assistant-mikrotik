@@ -44,10 +44,12 @@ bridge has no MAC table (before 6.41, and the switch chip of the CRS1xx/2xx), th
 read instead.
 
 **Where a device plugs in.** A device's MAC address is seen on every switch between it and the router.
-The integration takes the port that leads furthest down: not a port toward the router (a MikroTik
-with a DHCP server), and of the others the one with the fewest MAC addresses, since an uplink carries
-everything behind it. A Wi-Fi client is on the access point it is registered to. Add all your
-MikroTiks, also the ones that don't track devices, so it knows the whole network.
+The integration takes the port that leads furthest down. A port that leads up (where your router is
+seen: a MikroTik with a DHCP server, or the default gateway of a MikroTik, such as a FRITZ!Box) is an
+uplink: only that router itself is placed on it, and what is seen only through it is somewhere above.
+Of the other ports, the one with the fewest MAC addresses wins, since an uplink carries everything
+behind it. A Wi-Fi client is on the access point it is registered to. Add all your MikroTiks, also the
+ones that don't track devices, so it knows the whole network.
 
 **Per port** (Ethernet and SFP): a link entity, on when the link is up, with its speed, duplex,
 comment, the MikroTik or LLDP neighbour on it and how many devices are behind it. The traffic in and
