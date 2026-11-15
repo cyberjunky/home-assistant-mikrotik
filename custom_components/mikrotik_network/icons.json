@@ -1,0 +1,30 @@
+{
+  "entity": {
+    "sensor": {
+      "cpu": {
+        "default": "mdi:cpu-64-bit"
+      },
+      "memory": {
+        "default": "mdi:memory"
+      },
+      "boot": {
+        "default": "mdi:restart"
+      },
+      "wifi_clients": {
+        "default": "mdi:wifi"
+      },
+      "access_point": {
+        "default": "mdi:access-point"
+      },
+      "remote_cap": {
+        "default": "mdi:access-point-network"
+      },
+      "port_rx": {
+        "default": "mdi:download-network"
+      },
+      "port_tx": {
+        "default": "mdi:upload-network"
+      }
+    }
+  }
+}

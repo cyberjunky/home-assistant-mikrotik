@@ -1,0 +1,88 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Een MikroTik toevoegen",
+        "description": "Een MikroTik-router, -switch of -accesspoint, via de RouterOS API (RouterOS 6 of 7). Een gebruiker in een groep met de policies read en api is genoeg.",
+        "data": {
+          "host": "Host",
+          "username": "Gebruikersnaam",
+          "password": "Wachtwoord",
+          "ssl": "SSL gebruiken (API-poort 8729)",
+          "port": "Poort"
+        },
+        "data_description": {
+          "host": "Het adres van de MikroTik.",
+          "ssl": "Zet daarvoor de dienst api-ssl aan op de MikroTik.",
+          "port": "Leeg voor de standaard: 8728, of 8729 met SSL."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Opnieuw inloggen",
+        "description": "De MikroTik op {host} weigert de login.",
+        "data": {
+          "username": "Gebruikersnaam",
+          "password": "Wachtwoord"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Geen verbinding. Staat de dienst api (of api-ssl) aan, en klopt de poort?",
+      "invalid_auth": "De gebruiker of het wachtwoord klopt niet, of de groep van de gebruiker mist de policy api."
+    },
+    "abort": {
+      "already_configured": "Deze MikroTik is al toegevoegd.",
+      "reauth_successful": "Opnieuw ingelogd."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Netwerkapparaten volgen",
+        "data": {
+          "track_devices": "Netwerkapparaten volgen",
+          "devices_enabled": "Nieuwe device trackers inschakelen",
+          "consider_home": "Als thuis beschouwen"
+        },
+        "data_description": {
+          "track_devices": "Een device tracker voor elk apparaat dat deze MikroTik kent uit DHCP, ARP of wifi. Aan voor je router; meestal uit voor switches en accesspoints (die vertellen nog steeds waar apparaten op zitten).",
+          "devices_enabled": "Home Assistant schakelt trackers van onbekende apparaten uit; dit schakelt ze in.",
+          "consider_home": "Hoe lang een apparaat dat niet meer gezien wordt nog als thuis telt."
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "port": {
+        "name": "Poort {port}"
+      }
+    },
+    "sensor": {
+      "cpu": {
+        "name": "CPU-belasting"
+      },
+      "memory": {
+        "name": "Geheugen in gebruik"
+      },
+      "boot": {
+        "name": "Laatst opgestart"
+      },
+      "wifi_clients": {
+        "name": "Wifi-clients"
+      },
+      "port_rx": {
+        "name": "Poort {port} in"
+      },
+      "port_tx": {
+        "name": "Poort {port} uit"
+      },
+      "access_point": {
+        "name": "Wifi {name}"
+      },
+      "remote_cap": {
+        "name": "CAP {name}"
+      }
+    }
+  }
+}

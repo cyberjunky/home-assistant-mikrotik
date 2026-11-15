@@ -1,0 +1,88 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a MikroTik",
+        "description": "A MikroTik router, switch or access point, over the RouterOS API (RouterOS 6 or 7). A user in a group with the read and api policies is enough.",
+        "data": {
+          "host": "Host",
+          "username": "Username",
+          "password": "Password",
+          "ssl": "Use SSL (API port 8729)",
+          "port": "Port"
+        },
+        "data_description": {
+          "host": "The address of the MikroTik.",
+          "ssl": "Turn on the api-ssl service on the MikroTik for this.",
+          "port": "Leave empty for the default: 8728, or 8729 with SSL."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Log in again",
+        "description": "The MikroTik at {host} refuses the login.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect. Is the api (or api-ssl) service on, and the port right?",
+      "invalid_auth": "The user or password is wrong, or the user's group lacks the api policy."
+    },
+    "abort": {
+      "already_configured": "This MikroTik is added already.",
+      "reauth_successful": "Logged in again."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Tracking network devices",
+        "data": {
+          "track_devices": "Track network devices",
+          "devices_enabled": "Enable new device trackers",
+          "consider_home": "Consider home"
+        },
+        "data_description": {
+          "track_devices": "A device tracker for every device this MikroTik knows from DHCP, ARP or Wi-Fi. On for your router; usually off for switches and access points (they still tell where devices plug in).",
+          "devices_enabled": "Home Assistant leaves trackers of unknown devices disabled; this enables them.",
+          "consider_home": "How long a device that is no longer seen still counts as home."
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "port": {
+        "name": "Port {port}"
+      }
+    },
+    "sensor": {
+      "cpu": {
+        "name": "CPU load"
+      },
+      "memory": {
+        "name": "Memory used"
+      },
+      "boot": {
+        "name": "Last boot"
+      },
+      "wifi_clients": {
+        "name": "Wi-Fi clients"
+      },
+      "port_rx": {
+        "name": "Port {port} in"
+      },
+      "port_tx": {
+        "name": "Port {port} out"
+      },
+      "access_point": {
+        "name": "Wi-Fi {name}"
+      },
+      "remote_cap": {
+        "name": "CAP {name}"
+      }
+    }
+  }
+}
