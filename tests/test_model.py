@@ -98,3 +98,29 @@ def test_without_a_mikrotik_router():
     where = {mac: (p.device, p.port) for mac, p in place(n).items()}
     assert where[CAP_MAC] == (SW, "ether3") and where[PI] == (SW, "ether2")
     assert where[PHONE] == (CAP, "wifi1")
+
+
+def test_mac_table_of_an_older_switch():
+    # RouterOS before 6.41, and the CRS1xx/2xx: the switch chip's table, with port or ports
+    r = raw(SW)
+    r["bridge_host"] = []
+    r["switch_host"] = [
+        {"mac-address": PI.upper(), "ports": "ether2"},
+        {"mac-address": CAP_MAC.upper(), "port": "ether3"},
+        {"mac-address": GW_MAC.upper(), "port": "switch1-cpu"},
+    ]
+    sw = parse(r, SW, now=1000.0)
+    assert sw.ports["ether2"].macs == [PI] and sw.ports["ether3"].macs == [CAP_MAC]
+    assert "switch1-cpu" not in {p for _, p, _ in sw.fdb}
+
+
+def test_routeros_6_without_arp_status():
+    r = raw(GW)
+    r["arp"] = [
+        {"mac-address": NAS.upper(), "address": "192.168.88.10", "interface": "bridge", "complete": True},
+        {"mac-address": PI.upper(), "address": "192.168.88.20", "interface": "bridge", "complete": False},
+    ]
+    r["health"] = [{"temperature": 41, "voltage": 24}]
+    gw = parse(r, GW, now=1000.0)
+    assert gw.clients[NAS].active and not gw.clients[PI].active
+    assert gw.temperature == 41.0

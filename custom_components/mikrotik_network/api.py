@@ -8,7 +8,7 @@ from typing import Any
 
 import librouteros
 from librouteros.exceptions import LibRouterosError, MultiTrapError, TrapError
-from librouteros.login import plain
+from librouteros.login import encode_password
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,6 +17,15 @@ _LOGGER = logging.getLogger(__name__)
 TRAPS = (TrapError, MultiTrapError)
 
 TIMEOUT = 10
+
+
+def login(api: Any, username: str, password: str) -> None:
+    """Log in on any RouterOS: 6.43 and later take the password; older ones answer with a challenge
+    (ret) instead, and want the password hashed with it."""
+    reply = tuple(api("/login", name=username, password=password))
+    challenge = next((r["ret"] for r in reply if r.get("ret")), None)
+    if challenge:
+        tuple(api("/login", name=username, response=encode_password(str(challenge), password)))
 
 
 class CannotConnectError(Exception):
@@ -40,8 +49,7 @@ class RouterOS:
 
     def connect(self) -> None:
         kwargs: dict[str, Any] = {
-            # RouterOS 6.43 and later (and 7) log in with the password in plain text over the API
-            "login_method": plain,
+            "login_method": login,
             "port": self._port,
             "encoding": "utf8",
             "timeout": TIMEOUT,

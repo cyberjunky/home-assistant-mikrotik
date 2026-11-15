@@ -187,11 +187,14 @@ def parse(
     if not data.main_mac:
         data.main_mac = next((normalize_mac(i.get("mac-address")) for i in interfaces if i.get("type") == "ether"), "")
 
-    # The MAC table of the bridge: which MAC on which port
+    # The MAC table: which MAC on which port. The bridge's on RouterOS 6.41 and later; the switch
+    # chip's before that, and on the CRS1xx/2xx (port, or ports)
     per_port: dict[str, set[str]] = {}
-    for row in raw.get("bridge_host") or []:
+    for row in [*(raw.get("bridge_host") or []), *(raw.get("switch_host") or [])]:
         mac = normalize_mac(row.get("mac-address"))
-        port = str(row.get("on-interface") or "")
+        port = str(row.get("on-interface") or row.get("port") or str(row.get("ports") or "").split(",")[0])
+        if port.endswith("-cpu"):
+            continue
         if not mac or not port or as_bool(row.get("local")) or mac in data.own_macs:
             continue
         per_port.setdefault(port, set()).add(mac)

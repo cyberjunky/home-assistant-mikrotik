@@ -75,3 +75,18 @@ def test_links():
         assert ros.links(["ether1"]) == {"ether1": {"name": "ether1", "rate": "1Gbps"}}
     monitor.assert_called_once_with("monitor", numbers="ether1", once=True)
     assert ros.links([]) == {}
+
+
+def test_login_on_any_routeros():
+    from custom_components.mikrotik_network.api import login
+
+    # 6.43 and later: the password does it
+    new = MagicMock(return_value=iter([{}]))
+    login(new, "u", "p")
+    new.assert_called_once_with("/login", name="u", password="p")
+    # Older: a challenge comes back, answered with the hashed password
+    old = MagicMock(side_effect=[iter([{"ret": "ebddd18303a54111e2dea05a92ab46b4"}]), iter([{}])])
+    login(old, "u", "p")
+    assert old.call_count == 2
+    second = old.call_args_list[1]
+    assert second.kwargs["name"] == "u" and second.kwargs["response"].startswith("00")

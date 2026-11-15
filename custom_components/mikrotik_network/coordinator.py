@@ -85,6 +85,11 @@ class MikroTikCoordinator(DataUpdateCoordinator[MikroTikData]):
             "dhcp_server": api.read("ip", "dhcp-server"),
             "wifi": read_wifi(api, self._wifi_package),
         }
+        if not raw["bridge_host"]:
+            # Older RouterOS and the CRS1xx/2xx: the switch chip keeps the MAC table
+            raw["switch_host"] = api.read("interface", "ethernet", "switch", "host") or api.read(
+                "interface", "ethernet", "switch", "unicast-fdb"
+            )
         running = [
             i["name"] for i in raw["interface"] if i.get("type") == "ether" and i.get("running") in (True, "true")
         ]

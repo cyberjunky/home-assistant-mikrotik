@@ -15,7 +15,7 @@ Your MikroTik routers, switches and access points in Home Assistant: the devices
 Wi-Fi access points with their clients, and the MikroTiks themselves.
 
 It reads RouterOS over its API, the same way Home Assistant's own MikroTik integration does, so it
-works with RouterOS 6.43 and later and RouterOS 7, and needs only a read-only user. It adds what that integration doesn't
+works with RouterOS 6 (also older versions, before 6.43) and RouterOS 7, and needs only a read-only user. It adds what that integration doesn't
 have: the ports, the access points, and where every device plugs in, worked out over all your
 MikroTiks together.
 
@@ -38,6 +38,10 @@ tracked by one MikroTik only. Each tracker says where the device is:
 `sw_mac`, `sw_port` and `ap_mac` are the names UniFi uses, so other integrations and apps that draw
 networks understand them; the [Network app](https://github.com/cyberjunky/home-assistant-apps/tree/main/app-network)
 draws every device on its switch port with them.
+
+**Older devices.** RouterOS 6 works too, also before 6.43 (the old challenge login). Where the
+bridge has no MAC table (before 6.41, and the switch chip of the CRS1xx/2xx), the switch chip's is
+read instead.
 
 **Where a device plugs in.** A device's MAC address is seen on every switch between it and the router.
 The integration takes the port that leads furthest down: not a port toward the router (a MikroTik
@@ -119,7 +123,7 @@ them to RouterOS to add them.
 
 ## Compared with Home Assistant's MikroTik integration
 
-Kept: the login (RouterOS 6.43 and later, and 7, the API with or without SSL, logging in again when the password
+Kept: the login (RouterOS 6, also before 6.43, and 7, the API with or without SSL, logging in again when the password
 changes), device trackers from DHCP, ARP and Wi-Fi (the wifi, wifiwave2, wireless and CAPsMAN
 packages) with *Consider home*.
 
