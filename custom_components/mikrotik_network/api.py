@@ -7,10 +7,14 @@ import ssl
 from typing import Any
 
 import librouteros
-from librouteros.exceptions import LibRouterosError, TrapError
+from librouteros.exceptions import LibRouterosError, MultiTrapError, TrapError
 from librouteros.login import plain
 
 _LOGGER = logging.getLogger(__name__)
+
+# The device answered with an error (one, or several at once): a menu it doesn't have (another
+# Wi-Fi package) or the user may not read. Not a broken connection.
+TRAPS = (TrapError, MultiTrapError)
 
 TIMEOUT = 10
 
@@ -64,16 +68,15 @@ class RouterOS:
             self._api = None
 
     def read(self, *path: str) -> list[dict[str, Any]] | None:
-        """Every row of a menu, or None when this device doesn't have it (another Wi-Fi package)."""
+        """Every row of a menu, or None when this device doesn't have it or the user may not read it."""
         if self._api is None:
             self.connect()
         assert self._api is not None
         try:
             return list(self._api.path(*path))
-        except TrapError as err:
-            if "no such command" in str(err):
-                return None
-            raise
+        except TRAPS as err:
+            _LOGGER.debug("%s: no /%s: %s", self.host, "/".join(path), err)
+            return None
         except (LibRouterosError, OSError, TimeoutError) as err:
             # A dropped connection: connect again next time
             self.close()
@@ -86,7 +89,7 @@ class RouterOS:
         try:
             rows = self._api.path("interface", "ethernet")("monitor", numbers=",".join(names), once=True)
             return {row.get("name", ""): row for row in rows}
-        except TrapError as err:
+        except TRAPS as err:
             _LOGGER.debug("%s: no link details: %s", self.host, err)
             return {}
         except (LibRouterosError, OSError, TimeoutError) as err:

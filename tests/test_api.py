@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from librouteros.exceptions import ConnectionClosed, TrapError
+from librouteros.exceptions import ConnectionClosed, MultiTrapError, TrapError
 
 from custom_components.mikrotik_network.api import CannotConnectError, InvalidAuthError, RouterOS
 
@@ -41,12 +41,24 @@ def test_ssl_wraps_the_socket():
 
 def test_reading():
     ros = RouterOS("10.0.0.1", "u", "p", 8728, False)
-    api = device({("system", "identity"): [{"name": "gw"}], ("ip", "arp"): ConnectionClosed("gone")})
+    api = device(
+        {
+            ("system", "identity"): [{"name": "gw"}],
+            ("ip", "arp"): ConnectionClosed("gone"),
+            # RouterOS 7 without the wifi package answers with two errors at once
+            ("interface", "wifi"): MultiTrapError(
+                TrapError("no such command or directory (wifi)"), TrapError("no such command prefix")
+            ),
+            ("system", "health"): TrapError("not enough permissions (9)"),
+        }
+    )
     with patch("librouteros.connect", return_value=api):
         # Connects on the first read
         assert ros.read("system", "identity") == [{"name": "gw"}]
-        # A package it doesn't have
+        # A package it doesn't have, or a menu the user may not read: not there, the connection is fine
         assert ros.read("interface", "wifi") is None
+        assert ros.read("interface", "wireless") is None
+        assert ros.read("system", "health") is None
         # A dropped connection: an error now, a new connection next time
         with pytest.raises(CannotConnectError):
             ros.read("ip", "arp")
