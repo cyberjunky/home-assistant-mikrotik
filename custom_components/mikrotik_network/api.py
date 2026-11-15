@@ -8,7 +8,7 @@ from typing import Any
 
 import librouteros
 from librouteros.exceptions import LibRouterosError, TrapError
-from librouteros.login import plain, token
+from librouteros.login import plain
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,7 +36,8 @@ class RouterOS:
 
     def connect(self) -> None:
         kwargs: dict[str, Any] = {
-            "login_methods": (plain, token),
+            # RouterOS 6.43 and later (and 7) log in with the password in plain text over the API
+            "login_method": plain,
             "port": self._port,
             "encoding": "utf8",
             "timeout": TIMEOUT,

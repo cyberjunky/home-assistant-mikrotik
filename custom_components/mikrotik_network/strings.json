@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Add a MikroTik",
-        "description": "A MikroTik router, switch or access point, over the RouterOS API (RouterOS 6 or 7). A user in a group with the read and api policies is enough.",
+        "description": "A MikroTik router, switch or access point, over the RouterOS API (RouterOS 6.43 or later, or 7). A user in a group with the read and api policies is enough.",
         "data": {
           "host": "Host",
           "username": "Username",

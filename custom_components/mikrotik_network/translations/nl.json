@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Een MikroTik toevoegen",
-        "description": "Een MikroTik-router, -switch of -accesspoint, via de RouterOS API (RouterOS 6 of 7). Een gebruiker in een groep met de policies read en api is genoeg.",
+        "description": "Een MikroTik-router, -switch of -accesspoint, via de RouterOS API (RouterOS 6.43 of nieuwer, of 7). Een gebruiker in een groep met de policies read en api is genoeg.",
         "data": {
           "host": "Host",
           "username": "Gebruikersnaam",

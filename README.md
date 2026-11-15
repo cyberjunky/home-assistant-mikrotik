@@ -1,4 +1,5 @@
 [![GitHub Release][releases-shield]][releases]
+[![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]](LICENSE)
 ![Project Maintenance][maintenance-shield]
 
@@ -7,12 +8,14 @@
 
 # MikroTik Network
 
+<img src="custom_components/mikrotik_network/brand/icon.png" alt="MikroTik Network" width="128" align="right">
+
 Your MikroTik routers, switches and access points in Home Assistant: the devices on your network,
 **on which switch port or access point each one is**, every port with its link and traffic, your
 Wi-Fi access points with their clients, and the MikroTiks themselves.
 
 It reads RouterOS over its API, the same way Home Assistant's own MikroTik integration does, so it
-works with RouterOS 6 and 7 and needs only a read-only user. It adds what that integration doesn't
+works with RouterOS 6.43 and later and RouterOS 7, and needs only a read-only user. It adds what that integration doesn't
 have: the ports, the access points, and where every device plugs in, worked out over all your
 MikroTiks together.
 
@@ -85,7 +88,7 @@ points.
 
 ## Compared with Home Assistant's MikroTik integration
 
-Kept: the login (RouterOS 6 and 7, the API with or without SSL, logging in again when the password
+Kept: the login (RouterOS 6.43 and later, and 7, the API with or without SSL, logging in again when the password
 changes), device trackers from DHCP, ARP and Wi-Fi (the wifi, wifiwave2, wireless and CAPsMAN
 packages) with *Consider home*.
 
@@ -97,7 +100,41 @@ and the MikroTik's own sensors.
 
 Both can run side by side; they have different names (`mikrotik` and `mikrotik_network`).
 
+## Diagnostics
+
+**Settings → Devices & services → MikroTik Network → ⋮ → Download diagnostics** gives what the
+integration read from that MikroTik: its ports, access points, clients and where each device was
+placed. The password, user, serial number and MAC addresses are left out (MAC addresses become
+`mac-0`, `mac-1`, …), so it can be shared in an issue.
+
+## Development
+
+```bash
+uv venv --python 3.14
+uv pip install -r requirements_test.txt
+uv run pytest
+uvx ruff check custom_components tests
+```
+
+The tests run against a fake network of three MikroTiks (a router, a switch and an access point), so no
+MikroTik is needed.
+
+## 💖 Support This Project
+
+If you find this integration useful, please consider supporting its continued development:
+
+[![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=for-the-badge&logo=paypal)](https://www.paypal.me/cyberjunkynl/)
+[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-GitHub-red.svg?style=for-the-badge&logo=github)](https://github.com/sponsors/cyberjunky)
+
+## License
+
+MIT, see [LICENSE](LICENSE). It talks to RouterOS with [librouteros](https://github.com/luqasz/librouteros), as Home Assistant's own MikroTik integration does.
+
+---
+
 [releases-shield]: https://img.shields.io/github/release/cyberjunky/home-assistant-mikrotik.svg?style=for-the-badge
 [releases]: https://github.com/cyberjunky/home-assistant-mikrotik/releases
+[commits-shield]: https://img.shields.io/github/commit-activity/y/cyberjunky/home-assistant-mikrotik.svg?style=for-the-badge
+[commits]: https://github.com/cyberjunky/home-assistant-mikrotik/commits/main
 [license-shield]: https://img.shields.io/github/license/cyberjunky/home-assistant-mikrotik.svg?style=for-the-badge
 [maintenance-shield]: https://img.shields.io/badge/maintainer-cyberjunky-blue.svg?style=for-the-badge
