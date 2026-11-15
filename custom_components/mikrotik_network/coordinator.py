@@ -123,6 +123,8 @@ class Fabric:
     def __init__(self) -> None:
         self.coordinators: dict[str, MikroTikCoordinator] = {}
         self.placement: dict[str, Placement] = {}
+        # Per (entry, port or Wi-Fi interface): the MACs placed there
+        self.on_port: dict[tuple[str, str], list[str]] = {}
         # A device is tracked by one entry: the first that has it
         self.claims: dict[str, str] = {}
 
@@ -136,6 +138,10 @@ class Fabric:
     def claim(self, mac: str, entry_id: str) -> bool:
         return self.claims.setdefault(mac, entry_id) == entry_id
 
+    def connected(self, entry_id: str, port: str) -> list[str]:
+        """The MACs placed on a port or Wi-Fi interface of this MikroTik."""
+        return self.on_port.get((entry_id, port), [])
+
     def device(self, entry_id: str) -> MikroTikData | None:
         c = self.coordinators.get(entry_id)
         return c.data if c and c.data else None
@@ -147,7 +153,11 @@ class Fabric:
         if placement == self.placement:
             return
         self.placement = placement
-        # The others' trackers show where their devices plug in
+        on_port: dict[tuple[str, str], list[str]] = {}
+        for mac, p in sorted(placement.items()):
+            on_port.setdefault((p.device, p.port), []).append(mac)
+        self.on_port = on_port
+        # The others' trackers and ports show where their devices plug in
         for c in self.coordinators.values():
             if c is not source and c.data:
                 c.async_update_listeners()

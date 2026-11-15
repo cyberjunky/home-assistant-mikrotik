@@ -19,7 +19,8 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .coordinator import MikroTikConfigEntry, MikroTikCoordinator
+from .const import ATTR_AP_MAC, ATTR_CONNECTED, ATTR_INTERFACE
+from .coordinator import MikroTikConfigEntry, MikroTikCoordinator, fabric
 from .entity import MikroTikEntity
 from .model import MikroTikData
 
@@ -177,7 +178,16 @@ class AccessPointSensor(MikroTikEntity, SensorEntity):
         ap = self.coordinator.data.access_points.get(self.ap)
         if ap is None:
             return {}
-        attrs = {"ssid": ap.ssid, "running": ap.running, "disabled": ap.disabled, "mac": ap.mac}
+        attrs: dict[str, Any] = {
+            # For other integrations and apps: which devices are on this access point, by MAC address
+            ATTR_AP_MAC: self.coordinator.data.main_mac,
+            ATTR_INTERFACE: ap.name,
+            ATTR_CONNECTED: fabric(self.hass).connected(self.coordinator.config_entry.entry_id, ap.name),
+            "ssid": ap.ssid,
+            "running": ap.running,
+            "disabled": ap.disabled,
+            "mac": ap.mac,
+        }
         for key in ("band", "frequency", "master"):
             if value := getattr(ap, key):
                 attrs[key] = value

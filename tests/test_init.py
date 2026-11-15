@@ -77,10 +77,16 @@ async def test_ports_and_access_points(hass: HomeAssistant, network) -> None:
     reg = er.async_get(hass)
     ether2 = hass.states.get(reg.async_get_entity_id("binary_sensor", DOMAIN, "SW0002_port_ether2"))
     assert ether2.state == "on" and ether2.attributes["speed_mbps"] == 1000 and ether2.attributes["devices"] == 1
+    # Which devices plug into it, for other integrations and apps: also devices no MikroTik tracks
+    assert ether2.attributes["switch_mac"] == SW_MAC and ether2.attributes["port"] == "ether2"
+    assert ether2.attributes["connected"] == [PI]
+    ether3 = hass.states.get(reg.async_get_entity_id("binary_sensor", DOMAIN, "SW0002_port_ether3"))
+    assert ether3.attributes["connected"] == [CAP_MAC]
     ether4 = hass.states.get(reg.async_get_entity_id("binary_sensor", DOMAIN, "SW0002_port_ether4"))
     assert ether4.state == "off"
     wifi1 = hass.states.get(reg.async_get_entity_id("sensor", DOMAIN, "CAP0003_ap_wifi1"))
     assert wifi1.state == "2" and wifi1.attributes["ssid"] == "Home"
+    assert wifi1.attributes["ap_mac"] == CAP_MAC and wifi1.attributes["connected"] == sorted([PHONE, LAPTOP])
     cpu = hass.states.get(reg.async_get_entity_id("sensor", DOMAIN, "GW0001_cpu"))
     assert cpu.state == "7"
     # The traffic per port is there, off by default

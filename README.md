@@ -52,13 +52,27 @@ behind it. A Wi-Fi client is on the access point it is registered to. Add all yo
 ones that don't track devices, so it knows the whole network.
 
 **Per port** (Ethernet and SFP): a link entity, on when the link is up, with its speed, duplex,
-comment, the MikroTik or LLDP neighbour on it and how many devices are behind it. The traffic in and
-out of each port is there as two sensors, off by default (two per port is many): turn on the ones you
-want.
+comment, the MikroTik or LLDP neighbour on it and how many MAC addresses are seen behind it. The traffic
+in and out of each port is there as two sensors, off by default (two per port is many): turn on the
+ones you want.
 
 **Per Wi-Fi access point** (a radio of the MikroTik, or one it manages over CAPsMAN): its clients, with
 its SSID, band and frequency. A CAPsMAN manager also gets a sensor per CAP it manages, with its
 address, model and version.
+
+**Which device on which port, for every device.** The trackers above exist only for the devices a
+MikroTik knows from DHCP, ARP or its Wi-Fi; behind another router (a FRITZ!Box) that is often only a
+few. So every port and access point also says which devices plug into it, whoever tracks them
+(arp-scan, Nmap, the FRITZ!Box):
+
+| Attribute | On | |
+|---|---|---|
+| `connected` | port, access point | The MAC addresses placed there (as above: not on uplinks) |
+| `switch_mac`, `port` | port | The switch's MAC address and the port's name |
+| `ap_mac`, `interface` | access point | The access point's MAC address and the Wi-Fi interface |
+
+The [Network app](https://github.com/cyberjunky/home-assistant-apps/tree/main/app-network) reads these
+and draws every device on its port, also the ones only arp-scan tracks.
 
 **The MikroTik itself**: CPU load, memory used, temperature (when it has a sensor), when it last
 started, and the number of Wi-Fi clients.

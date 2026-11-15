@@ -8,7 +8,8 @@ from homeassistant.components.binary_sensor import BinarySensorDeviceClass, Bina
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .coordinator import MikroTikConfigEntry, MikroTikCoordinator
+from .const import ATTR_CONNECTED, ATTR_PORT, ATTR_PORT_SWITCH
+from .coordinator import MikroTikConfigEntry, MikroTikCoordinator, fabric
 from .entity import MikroTikEntity
 from .model import Port
 
@@ -68,7 +69,14 @@ class PortLink(MikroTikEntity, BinarySensorEntity):
         p = self._port
         if p is None:
             return {}
-        attrs: dict[str, Any] = {"devices": len(p.macs), "disabled": p.disabled}
+        attrs: dict[str, Any] = {
+            # For other integrations and apps: which devices plug into this port, by MAC address
+            ATTR_PORT_SWITCH: self.coordinator.data.main_mac,
+            ATTR_PORT: p.name,
+            ATTR_CONNECTED: fabric(self.hass).connected(self.coordinator.config_entry.entry_id, p.name),
+            "devices": len(p.macs),
+            "disabled": p.disabled,
+        }
         if p.speed:
             attrs["speed_mbps"] = p.speed // 1_000_000
         if p.full_duplex is not None:
