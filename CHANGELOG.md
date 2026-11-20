@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+- **Each tracked device is a device in Home Assistant:** a device tracker now says which device it tracks, by its MAC address, as Home Assistant asks of integrations from 2027.11 on. That ends the warning in the log that the integration "does not provide device info for its ScannerEntity device tracker". The device is named as the tracker is (the comment in RouterOS, else the hostname), and keeps that name while it is away.
+
 ## 0.1.3
 
 - **A hAP with its factory DHCP server is not the router:** a MikroTik counted as the top of the network as soon as it ran a DHCP server. A hAP that still has its default DHCP server, behind a FRITZ!Box, then made everything it saw through its own uplink look plugged into that uplink. Now a MikroTik only counts as the router when its own default gateway isn't on the network; otherwise its uplink is an uplink like any other.

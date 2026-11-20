@@ -3,6 +3,7 @@
 import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -41,7 +42,7 @@ def tracker(hass: HomeAssistant, mac: str):
     return hass.states.get(entity_id)
 
 
-async def test_trackers_with_their_port(hass: HomeAssistant, network) -> None:
+async def test_trackers_with_their_port(hass: HomeAssistant, network, caplog: pytest.LogCaptureFixture) -> None:
     assert all(e.state is ConfigEntryState.LOADED for e in network)
     pi = tracker(hass, PI)
     assert (
@@ -62,6 +63,10 @@ async def test_trackers_with_their_port(hass: HomeAssistant, network) -> None:
     assert "sw_mac" not in phone.attributes
     # The switches themselves hang where they are, not the other way round
     assert tracker(hass, CAP_MAC).attributes["sw_mac"] == SW_MAC
+    # Each tracker has the tracked device, by its MAC address, with the tracker's name
+    device = dr.async_get(hass).async_get(er.async_get(hass).async_get(pi.entity_id).device_id)
+    assert device.name == "pi" and (dr.CONNECTION_NETWORK_MAC, PI) in device.connections
+    assert "does not provide device info" not in caplog.text
     # Only the router tracks: no trackers from the switch or the access point
     assert len(hass.states.async_entity_ids("device_tracker")) == 6
 

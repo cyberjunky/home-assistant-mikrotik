@@ -11,6 +11,8 @@ from typing import Any
 
 from homeassistant.components.device_tracker import ScannerEntity
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -91,6 +93,23 @@ class MikroTikTracker(CoordinatorEntity[MikroTikCoordinator], RestoreEntity, Sca
     def name(self) -> str:
         client = self._client
         return (client and (client.comment or client.hostname)) or self.hostname or self.mac_address or ""
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """The tracked device itself, by its MAC address: Home Assistant wants that from the integration.
+
+        Named as the tracker is. A device only gets its MAC address as a name when it is new, so one
+        that is gone after a restart keeps the name it had.
+        """
+        mac = self.mac_address or ""
+        connections = {(dr.CONNECTION_NETWORK_MAC, mac)}
+        client = self._client
+        name = (client and (client.comment or client.hostname)) or self.hostname
+        if not name and not dr.async_get(self.hass).async_get_devices(
+            connections=connections, config_entry_id=self.coordinator.config_entry.entry_id
+        ):
+            name = mac
+        return DeviceInfo(connections=connections, name=name) if name else DeviceInfo(connections=connections)
 
     def _seen_now(self) -> bool:
         """Answering this MikroTik (ARP, its Wi-Fi), or registered to the Wi-Fi of any MikroTik."""
