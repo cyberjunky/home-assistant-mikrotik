@@ -54,8 +54,8 @@ ones that don't track devices, so it knows the whole network.
 
 **Per port** (Ethernet and SFP): a link entity, on when the link is up, with its speed, duplex,
 comment, the MikroTik or LLDP neighbour on it and how many MAC addresses are seen behind it. The traffic
-in and out of each port is there as two sensors, off by default (two per port is many): turn on the
-ones you want.
+in and out of each port is there as two sensors (*Port … in* and *Port … out*), every 30 seconds. A port
+with nothing on it stays at 0, which Home Assistant doesn't record again.
 
 **Per Wi-Fi access point** (a radio of the MikroTik, or one it manages over CAPsMAN): its clients, with
 its SSID, band and frequency. A CAPsMAN manager also gets a sensor per CAP it manages, with its

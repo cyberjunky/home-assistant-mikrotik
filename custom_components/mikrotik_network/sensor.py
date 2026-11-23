@@ -129,14 +129,14 @@ class DeviceSensor(MikroTikEntity, SensorEntity):
 
 
 class PortTraffic(MikroTikEntity, SensorEntity):
-    """What goes into (rx) or out of (tx) a port. Off by default: 2 per port is many."""
+    """What goes into (rx) or out of (tx) a port. On by default: it is what the ports are for,
+    and a port with nothing on it stays 0, which the recorder doesn't write again."""
 
     _attr_device_class = SensorDeviceClass.DATA_RATE
     _attr_native_unit_of_measurement = UnitOfDataRate.BYTES_PER_SECOND
     _attr_suggested_unit_of_measurement = UnitOfDataRate.MEGABITS_PER_SECOND
     _attr_suggested_display_precision = 1
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: MikroTikCoordinator, port: str, direction: str) -> None:
         super().__init__(coordinator, f"{direction}_{port}")

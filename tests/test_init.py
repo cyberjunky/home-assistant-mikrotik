@@ -94,9 +94,9 @@ async def test_ports_and_access_points(hass: HomeAssistant, network) -> None:
     assert wifi1.attributes["ap_mac"] == CAP_MAC and wifi1.attributes["connected"] == sorted([PHONE, LAPTOP])
     cpu = hass.states.get(reg.async_get_entity_id("sensor", DOMAIN, "GW0001_cpu"))
     assert cpu.state == "7"
-    # The traffic per port is there, off by default
+    # The traffic per port is there, on by default
     rx = reg.async_get(reg.async_get_entity_id("sensor", DOMAIN, "GW0001_rx_ether1"))
-    assert rx.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    assert rx.disabled_by is None
 
 
 async def test_no_answer_and_unload(hass: HomeAssistant, network) -> None:
