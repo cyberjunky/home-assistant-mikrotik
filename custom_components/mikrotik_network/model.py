@@ -66,6 +66,11 @@ class Port:
     tx_bytes: int | None = None
     rx_rate: float | None = None  # bytes per second into the port
     tx_rate: float | None = None
+    # Since the device started: frames that came in or went out broken, and ones it dropped
+    rx_errors: int | None = None
+    tx_errors: int | None = None
+    rx_drops: int | None = None
+    tx_drops: int | None = None
     neighbor: str = ""  # the identity of the MikroTik/LLDP neighbour on it
     macs: list[str] = field(default_factory=list)
 
@@ -226,6 +231,10 @@ def parse(
             full_duplex=as_bool(links[name]["full-duplex"]) if "full-duplex" in links.get(name, {}) else None,
             rx_bytes=rx,
             tx_bytes=tx,
+            rx_errors=as_int(i.get("rx-error")),
+            tx_errors=as_int(i.get("tx-error")),
+            rx_drops=as_int(i.get("rx-drop")),
+            tx_drops=as_int(i.get("tx-drop")),
             neighbor=neighbors.get(name, ""),
             macs=sorted(per_port.get(name, set())),
         )

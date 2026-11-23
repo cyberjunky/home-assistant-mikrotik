@@ -97,6 +97,13 @@ async def test_ports_and_access_points(hass: HomeAssistant, network) -> None:
     # The traffic per port is there, on by default
     rx = reg.async_get(reg.async_get_entity_id("sensor", DOMAIN, "GW0001_rx_ether1"))
     assert rx.disabled_by is None
+    # And all that went through it, as a counter for Home Assistant's statistics
+    data_in = hass.states.get(reg.async_get_entity_id("sensor", DOMAIN, "GW0001_rx_bytes_ether1"))
+    assert data_in.attributes["state_class"] == "total_increasing" and data_in.attributes["device_class"] == "data_size"
+    assert float(data_in.state) > 0
+    # Errors and drops: 0 on a healthy port, with the four counts
+    errors = hass.states.get(reg.async_get_entity_id("sensor", DOMAIN, "GW0001_errors_ether1"))
+    assert errors.state == "0" and errors.attributes["rx_drops"] == 0
 
 
 async def test_no_answer_and_unload(hass: HomeAssistant, network) -> None:

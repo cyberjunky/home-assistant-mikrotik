@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.5
+
+**After updating:** traffic sensors you already had stay as they were. If you never turned on the *Port … in* and *Port … out* sensors, turn them on once: Settings → Entities, search for "port", select them, Enable selected.
+
+- **Port traffic on by default:** *Port … in* and *Port … out* are now on for new ports. They are what the Network app's Traffic page needs, and a port with nothing on it stays at 0, which Home Assistant doesn't record again.
+- **Data per port:** *Port … data in* and *Port … data out* count all that went through a port since the MikroTik started, so Home Assistant can show the data per hour, day or month.
+- **Errors per port:** *Port … errors* counts broken and dropped frames, with each count as an attribute. It stays 0 on a healthy port; one that keeps rising points to a bad cable or plug.
+
 ## 0.1.4
 
 - **Each tracked device is a device in Home Assistant:** a device tracker now says which device it tracks, by its MAC address, as Home Assistant asks of integrations from 2027.11 on. That ends the warning in the log that the integration "does not provide device info for its ScannerEntity device tracker". The device is named as the tracker is (the comment in RouterOS, else the hostname), and keeps that name while it is away.

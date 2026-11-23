@@ -78,6 +78,15 @@
       "port_tx": {
         "name": "Poort {port} uit"
       },
+      "port_rx_bytes": {
+        "name": "Poort {port} data in"
+      },
+      "port_tx_bytes": {
+        "name": "Poort {port} data uit"
+      },
+      "port_errors": {
+        "name": "Poort {port} fouten"
+      },
       "access_point": {
         "name": "Wifi {name}"
       },

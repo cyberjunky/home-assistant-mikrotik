@@ -55,7 +55,11 @@ ones that don't track devices, so it knows the whole network.
 **Per port** (Ethernet and SFP): a link entity, on when the link is up, with its speed, duplex,
 comment, the MikroTik or LLDP neighbour on it and how many MAC addresses are seen behind it. The traffic
 in and out of each port is there as two sensors (*Port … in* and *Port … out*), every 30 seconds. A port
-with nothing on it stays at 0, which Home Assistant doesn't record again.
+with nothing on it stays at 0, which Home Assistant doesn't record again. *Port … data in* and *Port … data
+out* count all that went through since the MikroTik started: Home Assistant's statistics make that data
+per hour, day or month (a restart of the MikroTik is taken care of). *Port … errors* (diagnostic) counts
+broken and dropped frames, with each count as an attribute: 0 on a healthy port, and one that keeps
+rising has a bad cable, a bad plug or a link that negotiates badly.
 
 **Per Wi-Fi access point** (a radio of the MikroTik, or one it manages over CAPsMAN): its clients, with
 its SSID, band and frequency. A CAPsMAN manager also gets a sensor per CAP it manages, with its

@@ -66,6 +66,20 @@ def test_traffic_rates():
     assert first.ports["ether1"].rx_rate is None
 
 
+def test_port_errors_and_drops():
+    raw_gw = raw(GW)
+    raw_gw["interface"] = [
+        dict(i, **{"rx-error": 3, "tx-drop": 2}) if i["name"] == "ether1" else i for i in raw_gw["interface"]
+    ]
+    port = parse(raw_gw, GW, now=1000.0).ports["ether1"]
+    assert (port.rx_errors, port.tx_errors, port.rx_drops, port.tx_drops) == (3, 0, 0, 2)
+    # An older RouterOS without the counters: none, not 0
+    raw_gw["interface"] = [
+        {k: v for k, v in i.items() if not k.endswith(("-error", "-drop"))} for i in raw_gw["interface"]
+    ]
+    assert parse(raw_gw, GW, now=1000.0).ports["ether1"].rx_errors is None
+
+
 def test_the_access_point():
     cap = network()[CAP]
     assert cap.access_points["wifi1"].ssid == "Home" and cap.access_points["wifi1"].clients == 2

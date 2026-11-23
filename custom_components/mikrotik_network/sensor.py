@@ -14,7 +14,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfDataRate, UnitOfTemperature
+from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfDataRate, UnitOfInformation, UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
@@ -101,6 +101,12 @@ async def async_setup_entry(
                 if (key := f"{direction}_{port}") not in added:
                     new.append(PortTraffic(coordinator, port, direction))
                     added.add(key)
+                if (key := f"{direction}_bytes_{port}") not in added:
+                    new.append(PortData(coordinator, port, direction))
+                    added.add(key)
+            if (key := f"errors_{port}") not in added:
+                new.append(PortErrors(coordinator, port))
+                added.add(key)
         for name in d.access_points:
             if (key := f"ap_{name}") not in added:
                 new.append(AccessPointSensor(coordinator, name))
@@ -151,6 +157,63 @@ class PortTraffic(MikroTikEntity, SensorEntity):
         if p is None:
             return None
         return p.rx_rate if self.direction == "rx" else p.tx_rate
+
+
+class PortData(MikroTikEntity, SensorEntity):
+    """All that went into (rx) or out of (tx) a port since the device started. A counter: Home
+    Assistant's statistics make it data per hour, day or month, and take a restart (back to 0) in
+    their stride."""
+
+    _attr_device_class = SensorDeviceClass.DATA_SIZE
+    _attr_native_unit_of_measurement = UnitOfInformation.BYTES
+    _attr_suggested_unit_of_measurement = UnitOfInformation.GIGABYTES
+    _attr_suggested_display_precision = 2
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+
+    def __init__(self, coordinator: MikroTikCoordinator, port: str, direction: str) -> None:
+        super().__init__(coordinator, f"{direction}_bytes_{port}")
+        self.port = port
+        self.direction = direction
+        self._attr_translation_key = f"port_{direction}_bytes"
+        self._attr_translation_placeholders = {"port": port}
+
+    @property
+    def native_value(self) -> int | None:
+        p = self.coordinator.data.ports.get(self.port)
+        if p is None:
+            return None
+        return p.rx_bytes if self.direction == "rx" else p.tx_bytes
+
+
+class PortErrors(MikroTikEntity, SensorEntity):
+    """Broken and dropped frames on a port since the device started: 0 on a healthy port; one that
+    keeps rising has a bad cable, a bad plug or a link that negotiates badly."""
+
+    _attr_translation_key = "port_errors"
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: MikroTikCoordinator, port: str) -> None:
+        super().__init__(coordinator, f"errors_{port}")
+        self.port = port
+        self._attr_translation_placeholders = {"port": port}
+
+    @property
+    def native_value(self) -> int | None:
+        p = self.coordinator.data.ports.get(self.port)
+        if p is None:
+            return None
+        counts = (p.rx_errors, p.tx_errors, p.rx_drops, p.tx_drops)
+        if all(c is None for c in counts):
+            return None
+        return sum(c or 0 for c in counts)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        p = self.coordinator.data.ports.get(self.port)
+        if p is None:
+            return {}
+        return {"rx_errors": p.rx_errors, "tx_errors": p.tx_errors, "rx_drops": p.rx_drops, "tx_drops": p.tx_drops}
 
 
 class AccessPointSensor(MikroTikEntity, SensorEntity):

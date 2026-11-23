@@ -28,6 +28,10 @@ def iface(name: str, mac: str, running: bool = True, kind: str = "ether", **extr
         "disabled": False,
         "rx-byte": 1000,
         "tx-byte": 2000,
+        "rx-error": 0,
+        "tx-error": 0,
+        "rx-drop": 0,
+        "tx-drop": 0,
         **extra,
     }
 
