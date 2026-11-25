@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.6
+
+**After updating:** nothing to do, unless a template of yours reads `last_seen` of a device that is home: it gets nothing now.
+
+- **Far fewer state writes:** `last_seen` is no longer refreshed in the attributes of a device that is home. It was updated with every poll, which made every poll a new state for each device to record. The attribute now only shows on a device that is away, where it gives the time the device was last seen and stays fixed. Home and away, and "consider home", work as before, also across a restart.
+
 ## 0.1.5
 
 **After updating:** traffic sensors you already had stay as they were. If you never turned on the *Port … in* and *Port … out* sensors, turn them on once: Settings → Entities, search for "port", select them, Enable selected.
