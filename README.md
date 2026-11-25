@@ -34,7 +34,7 @@ tracked by one MikroTik only. Each tracker says where the device is:
 | `ap_mac`, `ap_name`, `ssid`, `signal` | The access point, Wi-Fi network and signal (dBm), for a Wi-Fi client |
 | `interface` | The interface the MikroTik sees it on |
 | `ip_addresses` | Every address it answers on, when that is more than one (a FRITZ!Box does); `ip` is its DHCP lease, else the default gateway's address, else one it answered on lately |
-| `last_seen` | When it was last seen |
+| `last_seen` | When it was last seen. Only on a device that is away: at home it is seen with every poll |
 
 `sw_mac`, `sw_port` and `ap_mac` are the names UniFi uses, so other integrations and apps that draw
 networks understand them; the [Network app](https://github.com/cyberjunky/home-assistant-apps/tree/main/app-network)

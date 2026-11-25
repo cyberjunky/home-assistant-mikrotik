@@ -6,6 +6,7 @@ has it), and says on which switch port or access point it is, over every MikroTi
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -14,7 +15,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.helpers.restore_state import ExtraStoredData, RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
@@ -64,6 +65,20 @@ async def async_setup_entry(
 
     add_new()
     entry.async_on_unload(coordinator.async_add_listener(add_new))
+
+
+@dataclass
+class LastSeenData(ExtraStoredData):
+    """When a device was last seen, kept over a restart.
+
+    Not in the state: there it would change with every poll, and every change of an attribute is a
+    new state for the recorder to store.
+    """
+
+    last_seen: datetime | None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {ATTR_LAST_SEEN: self.last_seen.isoformat() if self.last_seen else None}
 
 
 class MikroTikTracker(CoordinatorEntity[MikroTikCoordinator], RestoreEntity, ScannerEntity):
@@ -152,9 +167,15 @@ class MikroTikTracker(CoordinatorEntity[MikroTikCoordinator], RestoreEntity, Sca
                 attrs[ATTR_SWITCH_NAME] = device.identity
                 if where.vlan is not None:
                     attrs[ATTR_VLAN] = where.vlan
-        if self._last_seen:
+        # Only of a device that is away: at home it is seen with every poll, and showing that
+        # would write a new state each time
+        if self._last_seen and not self.is_connected:
             attrs[ATTR_LAST_SEEN] = self._last_seen.isoformat()
         return attrs
+
+    @property
+    def extra_restore_state_data(self) -> LastSeenData:
+        return LastSeenData(self._last_seen)
 
     def _update(self) -> None:
         client = self._client
@@ -169,9 +190,13 @@ class MikroTikTracker(CoordinatorEntity[MikroTikCoordinator], RestoreEntity, Sca
 
     async def async_added_to_hass(self) -> None:
         """When the device was last seen survives a restart."""
-        if (last := await self.async_get_last_state()) is not None:
-            seen = last.attributes.get(ATTR_LAST_SEEN)
-            if self._last_seen is None and isinstance(seen, str):
+        if self._last_seen is None:
+            seen = None
+            if (stored := await self.async_get_last_extra_data()) is not None:
+                seen = stored.as_dict().get(ATTR_LAST_SEEN)
+            if seen is None and (last := await self.async_get_last_state()) is not None:
+                seen = last.attributes.get(ATTR_LAST_SEEN)
+            if isinstance(seen, str):
                 self._last_seen = dt_util.parse_datetime(seen)
         await super().async_added_to_hass()
 
