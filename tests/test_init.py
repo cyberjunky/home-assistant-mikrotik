@@ -1,11 +1,14 @@
 """Three MikroTiks in Home Assistant: the router tracks the devices, every one tells where they plug in."""
 
+from datetime import timedelta
+
 import pytest
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import MockConfigEntry, mock_restore_cache_with_extra_data
 
 from custom_components.mikrotik_network.const import DOMAIN
 
@@ -76,6 +79,52 @@ async def test_home_and_away(hass: HomeAssistant, network) -> None:
     assert tracker(hass, LAPTOP).state == "home"
     # Stale in ARP and on no Wi-Fi: not seen, so away
     assert tracker(hass, PI).state == "not_home"
+
+
+async def test_a_device_at_home_writes_no_new_state_per_poll(hass: HomeAssistant, network) -> None:
+    """Being seen again changes nothing in the state: no row per poll in a recorder."""
+    before = tracker(hass, NAS)
+    assert before.state == "home"
+    # Only a device that is away says when it was last seen
+    assert "last_seen" not in before.attributes
+    for _ in range(2):
+        await network[0].runtime_data.async_refresh()
+        await hass.async_block_till_done()
+    after = tracker(hass, NAS)
+    assert after.attributes == before.attributes
+    assert after.last_updated == before.last_updated
+
+
+async def test_last_seen_survives_a_restart(hass: HomeAssistant, fake_api) -> None:
+    """Kept beside the state: a device seen a minute ago is still home, one seen days ago is away."""
+    recent = dt_util.utcnow() - timedelta(seconds=60)
+    mock_restore_cache_with_extra_data(hass, [(State("device_tracker.pi", "home"), {"last_seen": recent.isoformat()})])
+    entry = entry_for(GW, "GW0001", True)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    pi = tracker(hass, PI)
+    assert pi.entity_id == "device_tracker.pi"
+    # Stale in ARP, but within consider_home
+    assert pi.state == "home" and "last_seen" not in pi.attributes
+
+
+async def test_last_seen_long_ago_shows_on_an_away_device(hass: HomeAssistant, fake_api) -> None:
+    long_ago = dt_util.utcnow() - timedelta(days=2)
+    mock_restore_cache_with_extra_data(
+        hass, [(State("device_tracker.pi", "home"), {"last_seen": long_ago.isoformat()})]
+    )
+    entry = entry_for(GW, "GW0001", True)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    pi = tracker(hass, PI)
+    assert pi.state == "not_home" and pi.attributes["last_seen"] == long_ago.isoformat()
+    # It stands still while the device is away
+    updated = pi.last_updated
+    await entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+    assert tracker(hass, PI).last_updated == updated
 
 
 async def test_ports_and_access_points(hass: HomeAssistant, network) -> None:
